@@ -55,9 +55,9 @@ a_test = squeeze(mean(P_test(alpha_idx,:,:),1)); % extract alpha band power from
 
 % Z scoring before PCA
 [Z_train,mu_train,sigma_train] = zscore(a_train.'); % standardize the input data to make it have zero mean and unit variance for each feature/variable
-[COEFF_train,SCORE_train] = princomp(Z_train);
+[COEFF_train,SCORE_train] = pca(Z_train);
 [Z_test,mu_test,sigma_test] = zscore(a_test.'); % standardize the input data to make it have zero mean and unit variance for each feature/variable
-[COEFF_test,SCORE_test] = princomp(Z_test);
+[COEFF_test,SCORE_test] = pca(Z_test);
 
 %% define features for classification
 
@@ -82,8 +82,8 @@ indices = crossvalind('Kfold',train_labels,K); % generate indices for CV
 for k = 1:K % K iterations
     cv_test_idx = find(indices == k); % indices for test samples in one round of CV
     cv_train_idx = find(indices ~= k); % indices for training samples in one round of CV
-    SVMStruct = svmtrain(feature_train(cv_train_idx,:),train_labels(cv_train_idx));
-    cv_classout = svmclassify(SVMStruct,feature_train(cv_test_idx,:));
+    SVMStruct = fitcsvm(feature_train(cv_train_idx,:),train_labels(cv_train_idx));
+    cv_classout = predict(SVMStruct,feature_train(cv_test_idx,:));
     cv_acc(k) = mean(cv_classout==train_labels(cv_test_idx)); % calculate accuracy
     TP = sum((cv_classout==train_labels(cv_test_idx))&(cv_classout==1)); % calculate True Positive
     TN = sum((cv_classout==train_labels(cv_test_idx))&(cv_classout==0)); % calculate True Negative
@@ -97,13 +97,13 @@ cv_sensitivity_avg = mean(cv_sensitivity);  % averaged sensitivity for detecting
 cv_specificity_avg = mean(cv_specificity);  % averaged specificity for detecting ec
 
 %% 7. classification on test data
-SVMStruct = svmtrain(feature_train,train_labels,'Showplot',true);
-classout = svmclassify(SVMStruct,feature_test,'Showplot',true);
+SVMStruct = fitcsvm(feature_train,train_labels);
+classout = predict(SVMStruct,feature_test);
 test_labels = [ones(100,1);zeros(100,1)]; % true labels of test trials: 1 for ec; 0 for eo
 acc = mean(classout==test_labels); % calculate accuracy
 TP = sum((classout==test_labels)&(classout==1)); % calculate True Positive
 TN = sum((classout==test_labels)&(classout==0)); % calculate True Negative
 FP = sum((classout~=test_labels)&(classout==1)); % calculate False Positive
 FN = sum((classout~=test_labels)&(classout==0)); % calculate False Negative
-sensitivity = TP/(TP+FN)% calculate specificity for detecting ec
-specificity = TN/(TN+FP)% calculate sensitivity for detecting ec
+sensitivity = TP/(TP+FN);% calculate sensitivity for detecting ec
+specificity = TN/(TN+FP);% calculate specificity for detecting ec
